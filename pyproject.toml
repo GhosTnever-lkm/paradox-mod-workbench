@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "paradox-mod-workbench"
+version = "0.2.0"
+description = "Local-first mod pack diagnostics, dependency checks, and conflict reports for Paradox games"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "GhosTnever" }]
+dependencies = []
+classifiers = [
+  "Environment :: Console",
+  "Programming Language :: Python :: 3",
+  "Topic :: Games/Entertainment",
+  "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.scripts]
+pmw = "paradox_mod_workbench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
