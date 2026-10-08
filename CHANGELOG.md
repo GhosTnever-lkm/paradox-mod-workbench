@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 - 2026-10-08
+
+- Clarify current scanner coverage, install requirements, and report behavior.
+- Correct roadmap to list only work that has not shipped yet.
+
 ## 0.2.0 - 2026-10-08
 
 - Read `descriptor.mod` dependency and replace-path declarations.

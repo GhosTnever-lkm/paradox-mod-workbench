@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "paradox-mod-workbench"
-version = "0.2.0"
+version = "0.2.1"
 description = "Local-first mod pack diagnostics, dependency checks, and conflict reports for Paradox games"
 readme = "README.md"
 requires-python = ">=3.11"
