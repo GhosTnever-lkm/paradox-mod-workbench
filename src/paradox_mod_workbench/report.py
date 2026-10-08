@@ -12,7 +12,7 @@ def to_json(mods: list[ModInput], findings: list[Finding]) -> str:
     counts = Counter(item.severity for item in findings)
     payload: dict[str, Any] = {
         "tool": "Paradox Mod Workbench",
-        "version": "0.2.0",
+        "version": "0.2.1",
         # Do not leak local usernames or full directory layouts into reports.
         "mods": [{"name": mod.name, "source": Path(mod.source).name, "file_count": len(mod.files),
                   "dependencies": mod.dependencies or [], "replace_paths": mod.replace_paths or []} for mod in mods],
