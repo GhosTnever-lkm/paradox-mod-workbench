@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2 - 2026-10-11
+
+- CI now also runs the test suite on Windows (windows-latest), not only Ubuntu.
+
+
 ## 0.2.1 - 2026-10-08
 
 - Clarify current scanner coverage, install requirements, and report behavior.
