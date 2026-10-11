@@ -8,8 +8,11 @@ from pathlib import Path, PurePosixPath
 from .model import Finding, ModFile, ModInput
 
 DEFAULT_MAX_UNPACKED = 500 * 1024 * 1024
-IGNORED_PARTS = {".git", ".hg", ".svn", "__macosx", "node_modules"}
-IGNORED_NAMES = {".ds_store", "thumbs.db", "thumbnail.png", "readme.md", "readme.txt"}
+IGNORED_PARTS = {".git", ".hg", ".svn", "__macosx", "node_modules", ".github"}
+IGNORED_NAMES = {
+    ".ds_store", "thumbs.db", "thumbnail.png", "readme.md", "readme.txt",
+    ".gitignore", ".gitattributes", "preview.png", "desktop.ini",
+}
 CLAUSEWITZ_ROOTS = {
     "common", "events", "decisions", "history", "interface", "localisation",
     "localization", "gfx", "sound", "music", "map", "portraits", "musicplayer",
@@ -93,6 +96,7 @@ def load_mod(source: str | os.PathLike[str], max_unpacked: int = DEFAULT_MAX_UNP
             with zipfile.ZipFile(location) as archive:
                 total = 0
                 safe_entries: list[tuple[zipfile.ZipInfo, str]] = []
+                seen_paths: set[str] = set()
                 for info in archive.infolist():
                     if info.is_dir():
                         continue
@@ -102,6 +106,16 @@ def load_mod(source: str | os.PathLike[str], max_unpacked: int = DEFAULT_MAX_UNP
                         continue
                     if _service_file(safe_path):
                         continue
+                    duplicate_key = safe_path.casefold()
+                    if duplicate_key in seen_paths:
+                        findings.append(Finding(
+                            "DUPLICATE_ARCHIVE_PATH", "warning",
+                            "Archive contains multiple entries for the same mod-relative path; "
+                            "only the first entry is used, so comparison results depend on archive ordering.",
+                            name, safe_path,
+                        ))
+                        continue
+                    seen_paths.add(duplicate_key)
                     total += info.file_size
                     if total > max_unpacked:
                         findings.append(Finding("ARCHIVE_SIZE_LIMIT", "error", f"Archive exceeds the {max_unpacked} byte uncompressed limit.", name))

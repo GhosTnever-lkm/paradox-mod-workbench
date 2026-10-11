@@ -5,7 +5,8 @@
 ## What it checks
 
 - Compare folders and ZIP archives using normalized mod-relative paths, including archives wrapped in one enclosing directory.
-- Identify meaningful file overrides while ignoring repository and Workshop noise.
+- Identify meaningful file overrides while ignoring repository and Workshop noise such as `.gitignore`, `.gitattributes`, `.github/`, `preview.png`, and `desktop.ini`.
+- Warn when ZIP entries collide after path normalization (including case-only collisions). Only the first entry is used; comparison results can depend on archive ordering.
 - Report duplicate keys in Clausewitz `.yml` localization and unbalanced braces or quotes in `.txt` and `.gui` scripts.
 - Read `descriptor.mod` dependencies and `replace_path` declarations, report dependencies outside the supplied scan as unchecked, and detect cycles among supplied mods.
 - Emit text, JSON, or SARIF reports for local review and CI automation.

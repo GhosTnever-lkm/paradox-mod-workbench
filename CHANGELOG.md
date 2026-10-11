@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 - 2026-10-12
+
+- Report duplicate ZIP paths after slash and case normalization; retain the first entry so ordering ambiguity is visible instead of silently overwriting it.
+- Ignore additional repository, Workshop, and OS metadata files consistently for folder and ZIP scans.
+- Synchronize the package and module version to 0.2.3.
+
 ## 0.2.2 - 2026-10-11
 
 - CI now also runs the test suite on Windows (windows-latest), not only Ubuntu.

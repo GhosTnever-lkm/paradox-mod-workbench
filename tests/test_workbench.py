@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+import warnings
 import zipfile
 from pathlib import Path
 import sys
@@ -46,6 +47,58 @@ class IngestTests(unittest.TestCase):
             mod = load_mod(archive)
             self.assertIn("UNSAFE_ARCHIVE_PATH", [finding.code for finding in mod.findings])
             self.assertEqual([item.path for item in mod.files], ["common/ideas/ok.txt"])
+
+    def test_duplicate_zip_path_is_reported_and_first_entry_is_kept(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "duplicate.zip"
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                with zipfile.ZipFile(archive, "w") as zipped:
+                    zipped.writestr("common/ideas/x.txt", "first")
+                    zipped.writestr("common/ideas/x.txt", "second")
+            mod = load_mod(archive)
+            self.assertEqual(len(mod.files), 1)
+            self.assertEqual(mod.files[0].data, b"first")
+            duplicate = next(item for item in mod.findings if item.code == "DUPLICATE_ARCHIVE_PATH")
+            self.assertEqual(duplicate.severity, "warning")
+            self.assertEqual(duplicate.path, "common/ideas/x.txt")
+
+    def test_case_only_zip_paths_are_reported_as_a_collision(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "case-collision.zip"
+            with zipfile.ZipFile(archive, "w") as zipped:
+                zipped.writestr("events/Foo.txt", "first")
+                zipped.writestr("events/foo.txt", "second")
+            mod = load_mod(archive)
+            self.assertEqual([item.path for item in mod.files], ["events/Foo.txt"])
+            duplicate = next(item for item in mod.findings if item.code == "DUPLICATE_ARCHIVE_PATH")
+            self.assertEqual(duplicate.path, "events/foo.txt")
+
+    def test_repository_and_workshop_noise_is_ignored_for_folders_and_zips(self):
+        service_paths = (
+            ".gitignore", ".gitattributes", ".github/workflows/ci.yml",
+            "preview.png", "desktop.ini",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / "mod-folder"
+            for relative in service_paths:
+                file_path = folder / relative
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                file_path.write_text("service noise", encoding="utf-8")
+            keep = folder / "common" / "ideas" / "keep.txt"
+            keep.parent.mkdir(parents=True)
+            keep.write_text("idea = { }", encoding="utf-8")
+
+            archive = root / "mod.zip"
+            with zipfile.ZipFile(archive, "w") as zipped:
+                for relative in service_paths:
+                    zipped.writestr(relative, "service noise")
+                zipped.writestr("common/ideas/keep.txt", "idea = { }")
+
+            expected = ["common/ideas/keep.txt"]
+            self.assertEqual([item.path for item in load_mod(folder).files], expected)
+            self.assertEqual([item.path for item in load_mod(archive).files], expected)
 
     def test_service_files_do_not_create_false_overrides(self):
         with tempfile.TemporaryDirectory() as directory:
