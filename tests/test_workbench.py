@@ -13,7 +13,7 @@ from paradox_mod_workbench import __version__
 from paradox_mod_workbench.cli import main
 from paradox_mod_workbench.diagnostics import compare_mods, dependency_findings, inspect_mod
 from paradox_mod_workbench.ingest import load_mod
-from paradox_mod_workbench.report import to_sarif
+from paradox_mod_workbench.report import to_json, to_sarif
 
 
 class IngestTests(unittest.TestCase):
@@ -178,6 +178,45 @@ class DiagnosticsTests(unittest.TestCase):
             mod = load_mod(path)
             self.assertEqual(mod.dependencies, ["B", "C"])
             self.assertEqual(mod.replace_paths, ["common/ideas"])
+
+    def test_dependencies_match_declared_descriptor_names(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mods = []
+            for folder, declared, dependency in (("folder-a", "Alpha Mod", "Beta Mod"), ("folder-b", "Beta Mod", None)):
+                path = Path(directory) / folder
+                path.mkdir()
+                metadata = f'name = "{declared}"\n'
+                if dependency:
+                    metadata += f'dependencies = {{ "{dependency}" }}\n'
+                (path / "descriptor.mod").write_text(metadata, encoding="utf-8")
+                mods.append(load_mod(path))
+            self.assertEqual([mod.declared_name for mod in mods], ["Alpha Mod", "Beta Mod"])
+            self.assertEqual(dependency_findings(mods), [])
+            payload = json.loads(to_json(mods, []))
+            self.assertEqual([item["declared_name"] for item in payload["mods"]], ["Alpha Mod", "Beta Mod"])
+
+    def test_legacy_sidecar_descriptor_contributes_dependencies(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            legacy = root / "legacy"
+            content = legacy / "Old Mod"
+            (content / "common").mkdir(parents=True)
+            (content / "common" / "ideas.txt").write_text("idea = { }", encoding="utf-8")
+            (legacy / "Old Mod.mod").write_text(
+                'name = "Legacy Alpha"\ndependencies = { "Legacy Beta" }\nreplace_path = "common/ideas"\n',
+                encoding="utf-8",
+            )
+            beta = root / "beta"
+            beta.mkdir()
+            (beta / "descriptor.mod").write_text('name = "Legacy Beta"\n', encoding="utf-8")
+
+            alpha_mod = load_mod(legacy)
+            beta_mod = load_mod(beta)
+            self.assertEqual(alpha_mod.name, "Old Mod")
+            self.assertEqual(alpha_mod.declared_name, "Legacy Alpha")
+            self.assertEqual(alpha_mod.dependencies, ["Legacy Beta"])
+            self.assertEqual(alpha_mod.replace_paths, ["common/ideas"])
+            self.assertEqual(dependency_findings([alpha_mod, beta_mod]), [])
 
 
 class CliTests(unittest.TestCase):

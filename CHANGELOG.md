@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.6 - 2026-10-13
+
+- Match declared dependencies against descriptor `name` values, even when they differ from the selected folder name.
+- Read dependency and `replace_path` metadata from legacy `.mod` sidecars and report the declared name in JSON.
+- Add regression coverage for modern descriptors and the legacy `.mod` plus content-folder layout.
+
 ## 0.2.5 - 2026-10-12
 
 - Detect file overrides between distinct sources even when their displayed mod names are identical; disambiguate those sources in the finding.

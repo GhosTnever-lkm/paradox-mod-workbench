@@ -1,0 +1,27 @@
+name: Release package
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Build wheel and source archive
+        run: |
+          python -m pip install --upgrade build
+          python -m build
+      - name: Create asset checksums
+        run: python -c 'import hashlib,pathlib; files=sorted(p for p in pathlib.Path("dist").iterdir() if p.is_file()); pathlib.Path("dist/SHA256SUMS").write_text("".join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n" for p in files), encoding="utf-8")'
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "Paradox Mod Workbench $GITHUB_REF_NAME" --generate-notes

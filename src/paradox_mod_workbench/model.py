@@ -32,5 +32,6 @@ class ModInput:
     source: str
     files: list[ModFile]
     findings: list[Finding]
+    declared_name: str | None = None
     dependencies: list[str] | None = None
     replace_paths: list[str] | None = None
