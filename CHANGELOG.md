@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.4 - 2026-10-12
+
+- Report the current package version in JSON and SARIF metadata instead of the stale 0.2.1 JSON value.
+- Add regression checks for both machine-readable report versions.
+
 ## 0.2.3 - 2026-10-12
 
 - Report duplicate ZIP paths after slash and case normalization; retain the first entry so ordering ambiguity is visible instead of silently overwriting it.

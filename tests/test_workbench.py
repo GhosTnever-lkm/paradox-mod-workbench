@@ -9,9 +9,11 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from paradox_mod_workbench import __version__
 from paradox_mod_workbench.cli import main
 from paradox_mod_workbench.diagnostics import compare_mods, dependency_findings, inspect_mod
 from paradox_mod_workbench.ingest import load_mod
+from paradox_mod_workbench.report import to_sarif
 
 
 class IngestTests(unittest.TestCase):
@@ -173,7 +175,12 @@ class CliTests(unittest.TestCase):
             payload = json.loads(rendered)
             self.assertIn("findings", payload)
             self.assertIn("summary", payload)
+            self.assertEqual(payload["version"], __version__)
             self.assertNotIn(str(Path(directory).resolve()), rendered)
+
+    def test_sarif_driver_reports_current_package_version(self):
+        payload = json.loads(to_sarif([], []))
+        self.assertEqual(payload["runs"][0]["tool"]["driver"]["version"], __version__)
 
 
 if __name__ == "__main__":

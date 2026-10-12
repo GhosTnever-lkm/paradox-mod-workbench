@@ -5,6 +5,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from . import __version__
 from .model import Finding, ModInput
 
 
@@ -12,7 +13,7 @@ def to_json(mods: list[ModInput], findings: list[Finding]) -> str:
     counts = Counter(item.severity for item in findings)
     payload: dict[str, Any] = {
         "tool": "Paradox Mod Workbench",
-        "version": "0.2.1",
+        "version": __version__,
         # Do not leak local usernames or full directory layouts into reports.
         "mods": [{"name": mod.name, "source": Path(mod.source).name, "file_count": len(mod.files),
                   "dependencies": mod.dependencies or [], "replace_paths": mod.replace_paths or []} for mod in mods],
@@ -38,7 +39,7 @@ def to_sarif(mods: list[ModInput], findings: list[Finding]) -> str:
     return json.dumps({
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "version": "2.1.0",
-        "runs": [{"tool": {"driver": {"name": "Paradox Mod Workbench", "rules": list(rules.values())}}, "results": results}],
+        "runs": [{"tool": {"driver": {"name": "Paradox Mod Workbench", "version": __version__, "rules": list(rules.values())}}, "results": results}],
     }, ensure_ascii=False, indent=2) + "\n"
 
 
