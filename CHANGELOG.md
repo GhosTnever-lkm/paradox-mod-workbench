@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.5 - 2026-10-12
+
+- Detect file overrides between distinct sources even when their displayed mod names are identical; disambiguate those sources in the finding.
+- Add a regression test for same-named folders.
+
 ## 0.2.4 - 2026-10-12
 
 - Report the current package version in JSON and SARIF metadata instead of the stale 0.2.1 JSON value.

@@ -112,6 +112,23 @@ class IngestTests(unittest.TestCase):
                 mods.append(load_mod(path))
             self.assertEqual(compare_mods(mods), [])
 
+    def test_distinct_sources_with_same_name_still_report_overrides(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mods = []
+            for folder in ("left", "right"):
+                path = Path(directory) / folder / "SameMod"
+                target = path / "common" / "ideas" / "shared.txt"
+                target.parent.mkdir(parents=True)
+                target.write_text("idea = { }", encoding="utf-8")
+                mods.append(load_mod(path))
+
+            findings = compare_mods(mods)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].code, "FILE_OVERRIDE")
+            self.assertEqual(findings[0].path, "common/ideas/shared.txt")
+            self.assertIn("SameMod [SameMod #1]", findings[0].message)
+            self.assertIn("SameMod [SameMod #2]", findings[0].message)
+
 
 class DiagnosticsTests(unittest.TestCase):
     def test_duplicate_localization_keys_are_reported(self):

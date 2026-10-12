@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import re
 from collections import defaultdict
+from pathlib import Path
 
 from .model import Finding, ModInput
 
@@ -97,18 +98,30 @@ def inspect_mod(mod: ModInput) -> list[Finding]:
 
 
 def compare_mods(mods: list[ModInput]) -> list[Finding]:
-    by_path: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    by_path: dict[str, list[tuple[int, str, str]]] = defaultdict(list)
     findings: list[Finding] = []
-    for mod in mods:
+    for mod_index, mod in enumerate(mods):
         for item in mod.files:
             if item.path.casefold() == "descriptor.mod":
                 continue
-            by_path[item.path.casefold()].append((mod.name, item.path))
+            by_path[item.path.casefold()].append((mod_index, mod.name, item.path))
     for entries in by_path.values():
-        if len({(name, path.casefold()) for name, path in entries}) < 2:
+        mod_paths: dict[int, str] = {}
+        for mod_index, _, path in entries:
+            mod_paths.setdefault(mod_index, path)
+        if len(mod_paths) < 2:
             continue
-        display_paths = sorted({path for _, path in entries}, key=str.casefold)
-        findings.append(Finding("FILE_OVERRIDE", "info", f"This path exists in multiple mods: {', '.join(name for name, _ in entries)}.", "mod pack", display_paths[0]))
+        display_paths = sorted(set(mod_paths.values()), key=str.casefold)
+        involved = [(index, mods[index].name) for index in mod_paths]
+        labels = [name for _, name in involved]
+        # A pack can contain separate archives/folders with identical basenames.
+        # Keep each source identifiable in the report instead of treating them as one mod.
+        if len(set(labels)) != len(labels):
+            sources = [Path(mods[index].source).name or str(index + 1) for index, _ in involved]
+            if len(set(sources)) != len(sources):
+                sources = [f"{source} #{index + 1}" for (index, _), source in zip(involved, sources)]
+            labels = [f"{name} [{source}]" for (_, name), source in zip(involved, sources)]
+        findings.append(Finding("FILE_OVERRIDE", "info", f"This path exists in multiple mods: {', '.join(labels)}.", "mod pack", display_paths[0]))
     return findings
 
 
