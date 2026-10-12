@@ -15,7 +15,7 @@ def to_json(mods: list[ModInput], findings: list[Finding]) -> str:
         "tool": "Paradox Mod Workbench",
         "version": __version__,
         # Do not leak local usernames or full directory layouts into reports.
-        "mods": [{"name": mod.name, "source": Path(mod.source).name, "file_count": len(mod.files),
+        "mods": [{"name": mod.name, "declared_name": mod.declared_name, "source": Path(mod.source).name, "file_count": len(mod.files),
                   "dependencies": mod.dependencies or [], "replace_paths": mod.replace_paths or []} for mod in mods],
         "summary": {"errors": counts["error"], "warnings": counts["warning"], "info": counts["info"]},
         "findings": [item.to_dict() for item in findings],

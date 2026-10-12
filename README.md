@@ -1,5 +1,8 @@
 # Paradox Mod Workbench
 
+[![CI](https://github.com/GhosTnever-lkm/paradox-mod-workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/GhosTnever-lkm/paradox-mod-workbench/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/GhosTnever-lkm/paradox-mod-workbench?display_name=tag)](https://github.com/GhosTnever-lkm/paradox-mod-workbench/releases)
+
 **A local-first quality and conflict workbench for Paradox mods.** Compare an entire mod pack, map descriptor dependencies, surface file overrides, inspect localization tables and Clausewitz scripts, and export machine-readable findings from one command.
 
 ## What it checks
@@ -9,17 +12,17 @@
 - Identify meaningful file overrides while ignoring repository and Workshop noise such as `.gitignore`, `.gitattributes`, `.github/`, `preview.png`, and `desktop.ini`.
 - Warn when ZIP entries collide after path normalization (including case-only collisions). Only the first entry is used; comparison results can depend on archive ordering.
 - Report duplicate keys in Clausewitz `.yml` localization and unbalanced braces or quotes in `.txt` and `.gui` scripts.
-- Read `descriptor.mod` dependencies and `replace_path` declarations, report dependencies outside the supplied scan as unchecked, and detect cycles among supplied mods.
+- Read declared mod names, dependencies, and `replace_path` values from `descriptor.mod` and legacy `.mod` sidecars. Match dependencies to those declared names instead of folder names, report dependencies outside the supplied scan as unchecked, and detect cycles among supplied mods.
 - Emit text, JSON, or SARIF reports for local review and CI automation.
 
-The scanner is read-only. It never edits a mod or uploads its contents.
+JSON reports include both the folder/archive label and the declared descriptor name when present. The scanner is read-only. It never edits a mod or uploads its contents.
 
 ## Install
 
 Requires Python 3.11 or newer.
 
 ```console
-python -m pip install git+https://github.com/GhosTnever-lkm/paradox-mod-workbench.git
+python -m pip install git+https://github.com/GhosTnever-lkm/paradox-mod-workbench.git@v0.2.6
 ```
 
 ## Quick start

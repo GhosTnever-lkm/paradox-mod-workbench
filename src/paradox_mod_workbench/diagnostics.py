@@ -130,10 +130,11 @@ def dependency_findings(mods: list[ModInput]) -> list[Finding]:
     findings: list[Finding] = []
     by_name: dict[str, ModInput] = {}
     for mod in mods:
-        by_name.setdefault(mod.name.casefold(), mod)
+        by_name.setdefault((mod.declared_name or mod.name).casefold(), mod)
 
     graph: dict[str, list[str]] = {name: [] for name in by_name}
     for mod in mods:
+        mod_key = (mod.declared_name or mod.name).casefold()
         for dependency in mod.dependencies or []:
             key = dependency.casefold()
             if key not in by_name:
@@ -142,8 +143,8 @@ def dependency_findings(mods: list[ModInput]) -> list[Finding]:
                     f"Declared dependency {dependency!r} is not among the supplied mods; availability was not checked.",
                     mod.name, "descriptor.mod",
                 ))
-            elif key != mod.name.casefold():
-                graph[mod.name.casefold()].append(key)
+            elif key != mod_key:
+                graph[mod_key].append(key)
 
     visited: set[str] = set()
     active: set[str] = set()

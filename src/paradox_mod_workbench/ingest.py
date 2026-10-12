@@ -20,15 +20,15 @@ CLAUSEWITZ_ROOTS = {
 }
 
 
-def _descriptor_values(raw: dict[str, bytes]) -> tuple[list[str], list[str]]:
+def _descriptor_values(raw: dict[str, bytes], fallback_data: bytes | None = None) -> tuple[str | None, list[str], list[str]]:
     """Read dependency and replace_path declarations from descriptor.mod, when present."""
-    data = raw.get("descriptor.mod")
+    data = next((value for path, value in raw.items() if path.casefold() == "descriptor.mod"), fallback_data)
     if data is None:
-        return [], []
+        return None, [], []
     try:
         text = data.decode("utf-8-sig")
     except UnicodeDecodeError:
-        return [], []
+        return None, [], []
 
     def values(key: str) -> list[str]:
         match = re.search(rf"(?ms)^\s*{re.escape(key)}\s*=\s*(\{{.*?\}}|[^\r\n#]+)", text)
@@ -42,7 +42,8 @@ def _descriptor_values(raw: dict[str, bytes]) -> tuple[list[str], list[str]]:
                 found.append(value)
         return found
 
-    return values("dependencies"), values("replace_path")
+    declared_names = values("name")
+    return (declared_names[0] if declared_names else None), values("dependencies"), values("replace_path")
 
 
 def _safe_archive_path(name: str) -> str | None:
@@ -80,6 +81,7 @@ def load_mod(source: str | os.PathLike[str], max_unpacked: int = DEFAULT_MAX_UNP
     name = location.stem if location.is_file() else location.name
     findings: list[Finding] = []
     raw: dict[str, bytes] = {}
+    legacy_descriptor: bytes | None = None
     if location.is_dir():
         for path in location.rglob("*"):
             if not path.is_file():
@@ -142,9 +144,13 @@ def load_mod(source: str | os.PathLike[str], max_unpacked: int = DEFAULT_MAX_UNP
             if any(path.startswith(child_prefix) for path in raw):
                 raw = {path[len(child_prefix):]: data for path, data in raw.items() if path.startswith(child_prefix)}
                 name = descriptors[0].stem
+                try:
+                    legacy_descriptor = descriptors[0].read_bytes()
+                except OSError as exc:
+                    findings.append(Finding("FILE_READ_ERROR", "warning", f"Could not read file ({exc.__class__.__name__}).", name, descriptors[0].name))
     if not raw and not any(f.code in {"INVALID_ZIP", "UNSUPPORTED_SOURCE", "ARCHIVE_SIZE_LIMIT"} for f in findings):
         findings.append(Finding("EMPTY_MOD", "warning", "No readable mod files were found.", name))
-    dependencies, replace_paths = _descriptor_values(raw)
+    declared_name, dependencies, replace_paths = _descriptor_values(raw, legacy_descriptor)
     files = [ModFile(name, path, data) for path, data in sorted(raw.items(), key=lambda item: item[0].casefold())]
     return ModInput(name=name, source=str(location), files=files, findings=findings,
-                    dependencies=dependencies, replace_paths=replace_paths)
+                    declared_name=declared_name, dependencies=dependencies, replace_paths=replace_paths)
