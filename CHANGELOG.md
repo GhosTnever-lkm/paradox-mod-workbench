@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.7 - 2026-10-13
+
+- Check brace and quote balance in `.txt` and `.gui` files under `scripted_effects/`, `scripted_guis/`, and `scripted_triggers/`.
+- Add regression coverage for all three Clausewitz script roots.
+
 ## 0.2.6 - 2026-10-13
 
 - Match declared dependencies against descriptor `name` values, even when they differ from the selected folder name.
