@@ -151,6 +151,24 @@ class DiagnosticsTests(unittest.TestCase):
             match = next(item for item in findings if item.code == "SCRIPT_UNCLOSED_BRACE")
             self.assertEqual(match.path, "common/ideas/broken.txt")
 
+    def test_script_errors_are_checked_in_all_scripted_roots(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mod"
+            roots = ("scripted_effects", "scripted_guis", "scripted_triggers")
+            for root in roots:
+                target = path / root / "broken.txt"
+                target.parent.mkdir(parents=True)
+                target.write_text("effect = {\n", encoding="utf-8")
+
+            findings = inspect_mod(load_mod(path))
+            broken_paths = {
+                item.path for item in findings if item.code == "SCRIPT_UNCLOSED_BRACE"
+            }
+            self.assertEqual(
+                broken_paths,
+                {f"{root}/broken.txt" for root in roots},
+            )
+
     def test_dependency_cycle_is_reported(self):
         with tempfile.TemporaryDirectory() as directory:
             mods = []

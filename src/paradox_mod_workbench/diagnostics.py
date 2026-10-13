@@ -8,6 +8,10 @@ from pathlib import Path
 from .model import Finding, ModInput
 
 SCRIPT_SUFFIXES = {"txt", "gui"}
+SCRIPT_ROOTS = (
+    "common/", "events/", "decisions/", "history/", "interface/",
+    "scripted_effects/", "scripted_guis/", "scripted_triggers/",
+)
 
 
 def _localization_findings(mod: ModInput, path: str, data: bytes) -> list[Finding]:
@@ -91,7 +95,7 @@ def inspect_mod(mod: ModInput) -> list[Finding]:
         if folded.startswith("localisation/") or folded.startswith("localization/"):
             if folded.endswith(".yml") or folded.endswith(".yaml") or folded.endswith(".csv"):
                 findings.extend(_localization_findings(mod, item.path, item.data))
-        elif folded.startswith(("common/", "events/", "decisions/", "history/", "interface/")):
+        elif folded.startswith(SCRIPT_ROOTS):
             if "." in item.path and item.path.rsplit(".", 1)[-1].casefold() in SCRIPT_SUFFIXES:
                 findings.extend(_script_findings(mod, item.path, item.data))
     return findings
