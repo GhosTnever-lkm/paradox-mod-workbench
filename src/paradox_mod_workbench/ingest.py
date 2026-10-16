@@ -31,15 +31,13 @@ def _descriptor_values(raw: dict[str, bytes], fallback_data: bytes | None = None
         return None, [], []
 
     def values(key: str) -> list[str]:
-        match = re.search(rf"(?ms)^\s*{re.escape(key)}\s*=\s*(\{{.*?\}}|[^\r\n#]+)", text)
-        if not match:
-            return []
-        body = re.sub(r"(?m)#.*$", "", match.group(1))
         found: list[str] = []
-        for quoted, single_quoted, bare in re.findall(r'"([^"]+)"|\'([^\']+)\'|([^\s{}]+)', body):
-            value = quoted or single_quoted or bare
-            if value:
-                found.append(value)
+        for match in re.finditer(rf"(?ms)^\s*{re.escape(key)}\s*=\s*(\{{.*?\}}|[^\r\n#]+)", text):
+            body = re.sub(r"(?m)#.*$", "", match.group(1))
+            for quoted, single_quoted, bare in re.findall(r'"([^"]+)"|\'([^\']+)\'|([^\s{}]+)', body):
+                value = quoted or single_quoted or bare
+                if value:
+                    found.append(value)
         return found
 
     declared_names = values("name")
