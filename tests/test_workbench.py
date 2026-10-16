@@ -238,6 +238,39 @@ class DiagnosticsTests(unittest.TestCase):
 
 
 class CliTests(unittest.TestCase):
+    def test_json_report_retains_repeated_replace_paths_for_folder_zip_and_legacy_mods(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            descriptor = (
+                'name = "Fixture"\n'
+                'replace_path = "common/ideas"\n'
+                'replace_path = "history/countries" # another replaced directory\n'
+            )
+            folder = root / "mod"
+            folder.mkdir()
+            (folder / "descriptor.mod").write_text(descriptor, encoding="utf-8")
+            (folder / "events").mkdir()
+            (folder / "events" / "fixture.txt").write_text("event = { }", encoding="utf-8")
+            archive = root / "mod.zip"
+            with zipfile.ZipFile(archive, "w") as zipped:
+                zipped.writestr("Wrapped/descriptor.mod", descriptor)
+                zipped.writestr("Wrapped/events/fixture.txt", "event = { }")
+            legacy = root / "legacy"
+            (legacy / "Fixture" / "events").mkdir(parents=True)
+            (legacy / "Fixture.mod").write_text(descriptor, encoding="utf-8")
+            (legacy / "Fixture" / "events" / "fixture.txt").write_text("event = { }", encoding="utf-8")
+
+            for source in (folder, archive, legacy):
+                with self.subTest(source=source.name):
+                    output = root / "report.json"
+                    result = main(["scan", str(source), "--format", "json", "--output", str(output)])
+                    payload = json.loads(output.read_text(encoding="utf-8"))
+                    self.assertEqual(result, 0)
+                    self.assertEqual(
+                        payload["mods"][0]["replace_paths"],
+                        ["common/ideas", "history/countries"],
+                    )
+
     def test_json_report_has_summary_and_readable_output(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "mod"
