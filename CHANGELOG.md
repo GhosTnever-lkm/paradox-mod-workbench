@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.8 - 2026-10-20
+
+- Preserve every repeated `replace_path` declaration in folder, ZIP, and legacy `.mod` JSON reports instead of silently keeping only the first path.
+- Add a CLI regression covering all three input layouts.
+
 ## 0.2.7 - 2026-10-13
 
 - Check brace and quote balance in `.txt` and `.gui` files under `scripted_effects/`, `scripted_guis/`, and `scripted_triggers/`.
