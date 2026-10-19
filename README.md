@@ -22,7 +22,7 @@ JSON reports include both the folder/archive label and the declared descriptor n
 Requires Python 3.11 or newer.
 
 ```console
-python -m pip install git+https://github.com/GhosTnever-lkm/paradox-mod-workbench.git@v0.2.7
+python -m pip install git+https://github.com/GhosTnever-lkm/paradox-mod-workbench.git@v0.2.8
 ```
 
 ## Quick start
