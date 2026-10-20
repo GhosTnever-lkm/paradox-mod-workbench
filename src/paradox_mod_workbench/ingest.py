@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import stat
 import zipfile
 from pathlib import Path, PurePosixPath
 
@@ -59,6 +60,26 @@ def _service_file(path: str) -> bool:
     return any(part in IGNORED_PARTS for part in parts) or parts[-1] in IGNORED_NAMES or parts[-1].endswith((".bak", ".tmp", ".swp"))
 
 
+def _is_junction(path: Path) -> bool:
+    """Detect a Windows junction without following it (Python 3.11 compatible)."""
+    check = getattr(path, "is_junction", None)
+    if check is not None:
+        return bool(check())
+    if os.name != "nt":
+        return False
+    metadata = os.lstat(path)
+    attributes = getattr(metadata, "st_file_attributes", 0)
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    mount_point_tag = getattr(stat, "IO_REPARSE_TAG_MOUNT_POINT", None)
+    return bool(
+        reparse_flag
+        and attributes & reparse_flag
+        and stat.S_ISDIR(metadata.st_mode)
+        and mount_point_tag is not None
+        and getattr(metadata, "st_reparse_tag", None) == mount_point_tag
+    )
+
+
 def _strip_wrapper(paths: dict[str, bytes]) -> dict[str, bytes]:
     """Strip one enclosing folder only when it is unambiguously a wrapper."""
     if "descriptor.mod" in paths or not paths:
@@ -81,16 +102,40 @@ def load_mod(source: str | os.PathLike[str], max_unpacked: int = DEFAULT_MAX_UNP
     raw: dict[str, bytes] = {}
     legacy_descriptor: bytes | None = None
     if location.is_dir():
-        for path in location.rglob("*"):
-            if not path.is_file():
-                continue
-            relative = path.relative_to(location).as_posix()
-            if _service_file(relative):
-                continue
-            try:
-                raw[relative] = path.read_bytes()
-            except OSError as exc:
-                findings.append(Finding("FILE_READ_ERROR", "warning", f"Could not read file ({exc.__class__.__name__}).", name, relative))
+        for current, directories, filenames in os.walk(location, topdown=True, followlinks=False):
+            current_path = Path(current)
+            directories.sort(key=str.casefold)
+            filenames.sort(key=str.casefold)
+            for directory in list(directories):
+                path = current_path / directory
+                relative = path.relative_to(location).as_posix()
+                try:
+                    linked = path.is_symlink() or _is_junction(path)
+                except OSError:
+                    linked = True
+                if linked:
+                    directories.remove(directory)
+                    findings.append(Finding(
+                        "LINK_SKIPPED", "warning",
+                        "A symbolic link or junction was skipped to keep scanning inside the selected folder.",
+                        name, relative,
+                    ))
+            for filename in filenames:
+                path = current_path / filename
+                relative = path.relative_to(location).as_posix()
+                if _service_file(relative):
+                    continue
+                try:
+                    if path.is_symlink() or _is_junction(path):
+                        findings.append(Finding(
+                            "LINK_SKIPPED", "warning",
+                            "A symbolic link or junction was skipped to keep scanning inside the selected folder.",
+                            name, relative,
+                        ))
+                        continue
+                    raw[relative] = path.read_bytes()
+                except OSError as exc:
+                    findings.append(Finding("FILE_READ_ERROR", "warning", f"Could not read file ({exc.__class__.__name__}).", name, relative))
     elif location.is_file() and location.suffix.casefold() == ".zip":
         try:
             with zipfile.ZipFile(location) as archive:
