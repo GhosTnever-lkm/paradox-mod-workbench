@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.9 - 2026-10-20
+
 - Skip symbolic links and Windows junctions during folder scans so files outside the selected mod are not read; report skipped links as warnings.
 - Add a regression for linked files and directories.
 
