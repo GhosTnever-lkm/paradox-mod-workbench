@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Traverse dependency graphs iteratively so large mod packs cannot hit Python's recursion limit during cycle detection.
+
 ## 0.2.9 - 2026-10-20
 
 - Skip symbolic links and Windows junctions during folder scans so files outside the selected mod are not read; report skipped links as warnings.
