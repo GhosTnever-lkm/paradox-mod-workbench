@@ -13,6 +13,7 @@ from paradox_mod_workbench import __version__
 from paradox_mod_workbench.cli import main
 from paradox_mod_workbench.diagnostics import compare_mods, dependency_findings, inspect_mod
 from paradox_mod_workbench.ingest import load_mod
+from paradox_mod_workbench.model import ModInput
 from paradox_mod_workbench.report import to_json, to_sarif
 
 
@@ -206,6 +207,24 @@ class DiagnosticsTests(unittest.TestCase):
                 mods.append(load_mod(path))
             findings = dependency_findings(mods)
             self.assertEqual([finding.code for finding in findings], ["DEPENDENCY_CYCLE"])
+
+    def test_long_dependency_cycle_does_not_exceed_python_recursion_limit(self):
+        count = 1200
+        mods = [
+            ModInput(
+                name=f"Mod {index}",
+                source=f"mod-{index}",
+                files=[],
+                findings=[],
+                declared_name=f"mod-{index}",
+                dependencies=[f"mod-{index + 1}"] if index + 1 < count else ["mod-0"],
+            )
+            for index in range(count)
+        ]
+
+        findings = dependency_findings(mods)
+
+        self.assertEqual([finding.code for finding in findings], ["DEPENDENCY_CYCLE"])
 
     def test_external_dependency_is_reported_as_unchecked(self):
         with tempfile.TemporaryDirectory() as directory:

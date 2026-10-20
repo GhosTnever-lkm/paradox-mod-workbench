@@ -151,26 +151,36 @@ def dependency_findings(mods: list[ModInput]) -> list[Finding]:
                 graph[mod_key].append(key)
 
     visited: set[str] = set()
-    active: set[str] = set()
     cycles: set[tuple[str, ...]] = set()
+    for start in graph:
+        if start in visited:
+            continue
+        # Keep the DFS explicit so large, valid mod dependency chains do not
+        # exceed Python's recursion limit and abort the whole scan.
+        trail = [start]
+        positions = {start: 0}
+        stack = [(start, 0)]
+        while stack:
+            node, child_index = stack[-1]
+            children = graph.get(node, [])
+            if child_index >= len(children):
+                stack.pop()
+                trail.pop()
+                positions.pop(node)
+                visited.add(node)
+                continue
 
-    def visit(node: str, trail: list[str]) -> None:
-        if node in active:
-            cycle = trail[trail.index(node):] + [node]
-            canonical = tuple(sorted(set(cycle)))
-            if canonical not in cycles:
-                cycles.add(canonical)
-                labels = [by_name[item].name for item in cycle]
-                findings.append(Finding("DEPENDENCY_CYCLE", "error", "Dependency cycle: " + " -> ".join(labels) + ".", "mod pack"))
-            return
-        if node in visited:
-            return
-        active.add(node)
-        for child in graph.get(node, []):
-            visit(child, trail + [node])
-        active.remove(node)
-        visited.add(node)
-
-    for node in graph:
-        visit(node, [])
+            child = children[child_index]
+            stack[-1] = (node, child_index + 1)
+            if child in positions:
+                cycle = trail[positions[child]:] + [child]
+                canonical = tuple(sorted(set(cycle)))
+                if canonical not in cycles:
+                    cycles.add(canonical)
+                    labels = [by_name[item].name for item in cycle]
+                    findings.append(Finding("DEPENDENCY_CYCLE", "error", "Dependency cycle: " + " -> ".join(labels) + ".", "mod pack"))
+            elif child not in visited:
+                positions[child] = len(trail)
+                trail.append(child)
+                stack.append((child, 0))
     return findings
