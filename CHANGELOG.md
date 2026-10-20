@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Skip symbolic links and Windows junctions during folder scans so files outside the selected mod are not read; report skipped links as warnings.
+- Add a regression for linked files and directories.
+
 ## 0.2.8 - 2026-10-20
 
 - Preserve every repeated `replace_path` declaration in folder, ZIP, and legacy `.mod` JSON reports instead of silently keeping only the first path.

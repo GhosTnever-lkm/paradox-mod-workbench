@@ -42,6 +42,7 @@ Pass one or more mod directories or `.zip` archives. Diagnostics are calculated 
 
 ## Safety and limits
 
+- Folder scans skip symbolic links and Windows junctions to keep inspection inside the selected mod directory; skipped links appear as warnings.
 - ZIP entries with absolute paths, drive prefixes, or `..` segments are skipped with a finding.
 - The default total uncompressed archive limit is 500 MiB.
 - Reports contain relative paths and compact finding messages; file contents are not copied into output.

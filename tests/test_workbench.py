@@ -17,6 +17,33 @@ from paradox_mod_workbench.report import to_json, to_sarif
 
 
 class IngestTests(unittest.TestCase):
+    def test_folder_symlinks_are_skipped_without_reading_outside_files(self):
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as external:
+            root = Path(directory) / "mod"
+            root.mkdir()
+            (root / "common").mkdir()
+            (root / "common" / "inside.txt").write_text("inside", encoding="utf-8")
+            outside_file = Path(external) / "outside.txt"
+            outside_file.write_text("outside-secret-fixture", encoding="utf-8")
+            outside_dir = Path(external) / "linked-dir"
+            outside_dir.mkdir()
+            (outside_dir / "outside.txt").write_text("outside-directory-fixture", encoding="utf-8")
+            try:
+                (root / "linked-file.txt").symlink_to(outside_file)
+                (root / "linked-dir").symlink_to(outside_dir, target_is_directory=True)
+            except OSError as error:
+                self.skipTest(f"symlinks are unavailable on this runner: {error}")
+
+            mod = load_mod(root)
+
+        self.assertEqual([item.path for item in mod.files], ["common/inside.txt"])
+        self.assertEqual(
+            {(item.code, item.path) for item in mod.findings if item.code == "LINK_SKIPPED"},
+            {("LINK_SKIPPED", "linked-file.txt"), ("LINK_SKIPPED", "linked-dir")},
+        )
+        self.assertNotIn("outside-secret-fixture", repr(mod.files))
+        self.assertNotIn("outside-directory-fixture", repr(mod.files))
+
     def test_wrapper_folder_does_not_hide_overlap(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
