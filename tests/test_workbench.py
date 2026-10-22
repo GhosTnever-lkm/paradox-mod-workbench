@@ -222,6 +222,28 @@ class DiagnosticsTests(unittest.TestCase):
             self.assertEqual([finding.code for finding in findings], ["DEPENDENCY_CYCLE"])
             self.assertIn("SelfMod -> SelfMod", findings[0].message)
 
+    def test_duplicate_declared_names_do_not_create_a_false_cycle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mods = []
+            for folder, dependencies in (
+                ("first-copy", ""),
+                ("second-copy", 'dependencies = { "Shared Name" }\n'),
+            ):
+                path = Path(directory) / folder
+                path.mkdir()
+                (path / "descriptor.mod").write_text(
+                    f'name = "Shared Name"\n{dependencies}', encoding="utf-8"
+                )
+                mods.append(load_mod(path))
+
+            findings = dependency_findings(mods)
+
+            self.assertEqual(
+                [finding.code for finding in findings],
+                ["DEPENDENCY_NAME_AMBIGUOUS"],
+            )
+            self.assertNotIn("DEPENDENCY_CYCLE", [finding.code for finding in findings])
+
     def test_long_dependency_cycle_does_not_exceed_python_recursion_limit(self):
         count = 1200
         mods = [

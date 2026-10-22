@@ -132,26 +132,32 @@ def compare_mods(mods: list[ModInput]) -> list[Finding]:
 def dependency_findings(mods: list[ModInput]) -> list[Finding]:
     """Check declared dependencies and cycles among the supplied mod descriptors."""
     findings: list[Finding] = []
-    by_name: dict[str, ModInput] = {}
-    for mod in mods:
-        by_name.setdefault((mod.declared_name or mod.name).casefold(), mod)
+    by_name: dict[str, list[int]] = defaultdict(list)
+    for index, mod in enumerate(mods):
+        by_name[(mod.declared_name or mod.name).casefold()].append(index)
 
-    graph: dict[str, list[str]] = {name: [] for name in by_name}
-    for mod in mods:
-        mod_key = (mod.declared_name or mod.name).casefold()
+    graph: dict[int, list[int]] = {index: [] for index in range(len(mods))}
+    for index, mod in enumerate(mods):
         for dependency in mod.dependencies or []:
             key = dependency.casefold()
-            if key not in by_name:
+            matches = by_name.get(key, [])
+            if not matches:
                 findings.append(Finding(
                     "DEPENDENCY_NOT_SCANNED", "warning",
                     f"Declared dependency {dependency!r} is not among the supplied mods; availability was not checked.",
                     mod.name, "descriptor.mod",
                 ))
+            elif len(matches) > 1:
+                findings.append(Finding(
+                    "DEPENDENCY_NAME_AMBIGUOUS", "warning",
+                    f"Declared dependency {dependency!r} matches multiple supplied mods; this dependency edge was excluded from cycle checks.",
+                    mod.name, "descriptor.mod",
+                ))
             else:
-                graph[mod_key].append(key)
+                graph[index].append(matches[0])
 
-    visited: set[str] = set()
-    cycles: set[tuple[str, ...]] = set()
+    visited: set[int] = set()
+    cycles: set[tuple[int, ...]] = set()
     for start in graph:
         if start in visited:
             continue
@@ -177,7 +183,7 @@ def dependency_findings(mods: list[ModInput]) -> list[Finding]:
                 canonical = tuple(sorted(set(cycle)))
                 if canonical not in cycles:
                     cycles.add(canonical)
-                    labels = [by_name[item].name for item in cycle]
+                    labels = [mods[item].name for item in cycle]
                     findings.append(Finding("DEPENDENCY_CYCLE", "error", "Dependency cycle: " + " -> ".join(labels) + ".", "mod pack"))
             elif child not in visited:
                 positions[child] = len(trail)
