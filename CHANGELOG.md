@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.11 - 2026-10-23
 
 - Render control, bidi, and invisible Unicode characters visibly in text/JSON findings; percent-encode them in SARIF artifact URIs to prevent spoofed report paths.
 - Add cross-format regression coverage for hostile ZIP filenames and finding messages.
