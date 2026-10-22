@@ -13,8 +13,8 @@ from paradox_mod_workbench import __version__
 from paradox_mod_workbench.cli import main
 from paradox_mod_workbench.diagnostics import compare_mods, dependency_findings, inspect_mod
 from paradox_mod_workbench.ingest import load_mod
-from paradox_mod_workbench.model import ModInput
-from paradox_mod_workbench.report import to_json, to_sarif
+from paradox_mod_workbench.model import Finding, ModInput
+from paradox_mod_workbench.report import to_json, to_sarif, to_text
 
 
 class IngestTests(unittest.TestCase):
@@ -334,6 +334,27 @@ class CliTests(unittest.TestCase):
     def test_sarif_driver_reports_current_package_version(self):
         payload = json.loads(to_sarif([], []))
         self.assertEqual(payload["runs"][0]["tool"]["driver"]["version"], __version__)
+
+    def test_reports_visibly_escape_untrusted_controls_and_bidi_paths(self):
+        path = "common/ideas/alert\u202Egpj.txt"
+        finding = Finding("HOSTILE_PATH", "warning", "bad\u202Evalue\nforged row", "mod\u202Ename", path)
+
+        json_text = to_json([], [finding])
+        json_finding = json.loads(json_text)["findings"][0]
+        self.assertEqual(json_finding["path"], r"common/ideas/alert\u{202E}gpj.txt")
+        self.assertIn(r"bad\u{202E}value\u{A}forged row", json_finding["message"])
+
+        sarif_text = to_sarif([], [finding])
+        sarif = json.loads(sarif_text)
+        result = sarif["runs"][0]["results"][0]
+        self.assertEqual(result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"],
+                         "common/ideas/alert%E2%80%AEgpj.txt")
+        self.assertIn(r"\u{202E}", result["message"]["text"])
+
+        text = to_text([], [finding])
+        self.assertIn(r"alert\u{202E}gpj.txt", text)
+        self.assertNotIn("\u202e", json_text + sarif_text + text)
+        self.assertNotIn("\nforged row", json_text + sarif_text + text)
 
 
 if __name__ == "__main__":

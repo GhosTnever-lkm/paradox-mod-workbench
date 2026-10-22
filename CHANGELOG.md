@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Render control, bidi, and invisible Unicode characters visibly in text/JSON findings; percent-encode them in SARIF artifact URIs to prevent spoofed report paths.
+- Add cross-format regression coverage for hostile ZIP filenames and finding messages.
+
 ## 0.2.10 - 2026-10-20
 
 - Traverse dependency graphs iteratively so large mod packs cannot hit Python's recursion limit during cycle detection.
