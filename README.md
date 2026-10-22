@@ -12,7 +12,7 @@
 - Identify meaningful file overrides while ignoring repository and Workshop noise such as `.gitignore`, `.gitattributes`, `.github/`, `preview.png`, and `desktop.ini`.
 - Warn when ZIP entries collide after path normalization (including case-only collisions). Only the first entry is used; comparison results can depend on archive ordering.
 - Report duplicate keys in Clausewitz `.yml` localization and unbalanced braces or quotes in `.txt` and `.gui` scripts.
-- Read declared mod names, dependencies, and `replace_path` values from `descriptor.mod` and legacy `.mod` sidecars. Match dependencies to those declared names instead of folder names, report dependencies outside the supplied scan as unchecked, and detect cycles among supplied mods.
+- Read declared mod names, dependencies, and `replace_path` values from `descriptor.mod` and legacy `.mod` sidecars. Match dependencies to those declared names instead of folder names, report dependencies outside the supplied scan as unchecked, mark references to duplicate names as ambiguous, and detect cycles among unambiguous supplied mods.
 - Emit text, JSON, or SARIF reports for local review and CI automation.
 - Render invisible/control characters in report text visibly; encode SARIF artifact paths as URIs.
 
