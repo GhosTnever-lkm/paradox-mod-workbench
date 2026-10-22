@@ -14,6 +14,7 @@
 - Report duplicate keys in Clausewitz `.yml` localization and unbalanced braces or quotes in `.txt` and `.gui` scripts.
 - Read declared mod names, dependencies, and `replace_path` values from `descriptor.mod` and legacy `.mod` sidecars. Match dependencies to those declared names instead of folder names, report dependencies outside the supplied scan as unchecked, and detect cycles among supplied mods.
 - Emit text, JSON, or SARIF reports for local review and CI automation.
+- Render invisible/control characters in report text visibly; encode SARIF artifact paths as URIs.
 
 JSON reports include both the folder/archive label and the declared descriptor name when present. The scanner is read-only. It never edits a mod or uploads its contents.
 

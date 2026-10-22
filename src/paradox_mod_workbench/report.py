@@ -1,12 +1,36 @@
 from __future__ import annotations
 
 import json
+import unicodedata
 from collections import Counter
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from . import __version__
 from .model import Finding, ModInput
+
+
+def _visible_text(value: str) -> str:
+    """Render invisible/control characters visibly in untrusted report text."""
+    output = []
+    for character in str(value):
+        category = unicodedata.category(character)
+        if category in {"Cc", "Cf", "Cs", "Co", "Cn", "Zl", "Zp"}:
+            output.append(f"\\u{{{ord(character):X}}}")
+        else:
+            output.append(character)
+    return "".join(output)
+
+
+def _visible_json(value: Any) -> Any:
+    if isinstance(value, str):
+        return _visible_text(value)
+    if isinstance(value, list):
+        return [_visible_json(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _visible_json(item) for key, item in value.items()}
+    return value
 
 
 def to_json(mods: list[ModInput], findings: list[Finding]) -> str:
@@ -20,7 +44,7 @@ def to_json(mods: list[ModInput], findings: list[Finding]) -> str:
         "summary": {"errors": counts["error"], "warnings": counts["warning"], "info": counts["info"]},
         "findings": [item.to_dict() for item in findings],
     }
-    return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    return json.dumps(_visible_json(payload), ensure_ascii=False, indent=2) + "\n"
 
 
 def to_sarif(mods: list[ModInput], findings: list[Finding]) -> str:
@@ -30,11 +54,11 @@ def to_sarif(mods: list[ModInput], findings: list[Finding]) -> str:
         result: dict[str, Any] = {
             "ruleId": item.code,
             "level": {"error": "error", "warning": "warning", "info": "note"}[item.severity],
-            "message": {"text": f"[{item.mod}] {item.message}"},
+            "message": {"text": _visible_text(f"[{item.mod}] {item.message}")},
         }
         if item.path:
             region = {"startLine": item.line} if item.line else {}
-            result["locations"] = [{"physicalLocation": {"artifactLocation": {"uri": item.path}, **({"region": region} if region else {})}}]
+            result["locations"] = [{"physicalLocation": {"artifactLocation": {"uri": quote(item.path, safe="/-._~")}, **({"region": region} if region else {})}}]
         results.append(result)
     return json.dumps({
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
@@ -49,7 +73,7 @@ def to_text(mods: list[ModInput], findings: list[Finding]) -> str:
         lines.append("No issues found.")
     for item in findings:
         location = f" ({item.path}" + (f":{item.line}" if item.line else "") + ")" if item.path else ""
-        lines.append(f"{item.severity.upper():7} {item.code}: {item.mod}{location}: {item.message}")
+        lines.append(_visible_text(f"{item.severity.upper():7} {item.code}: {item.mod}{location}: {item.message}"))
     return "\n".join(lines) + "\n"
 
 
