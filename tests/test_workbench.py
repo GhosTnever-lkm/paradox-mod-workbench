@@ -208,6 +208,20 @@ class DiagnosticsTests(unittest.TestCase):
             findings = dependency_findings(mods)
             self.assertEqual([finding.code for finding in findings], ["DEPENDENCY_CYCLE"])
 
+    def test_self_dependency_is_reported_as_a_cycle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "SelfMod"
+            path.mkdir()
+            (path / "descriptor.mod").write_text(
+                'name = "SelfMod"\ndependencies = { "SelfMod" }\n',
+                encoding="utf-8",
+            )
+
+            findings = dependency_findings([load_mod(path)])
+
+            self.assertEqual([finding.code for finding in findings], ["DEPENDENCY_CYCLE"])
+            self.assertIn("SelfMod -> SelfMod", findings[0].message)
+
     def test_long_dependency_cycle_does_not_exceed_python_recursion_limit(self):
         count = 1200
         mods = [

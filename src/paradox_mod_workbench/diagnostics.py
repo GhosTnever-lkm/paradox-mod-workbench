@@ -147,7 +147,7 @@ def dependency_findings(mods: list[ModInput]) -> list[Finding]:
                     f"Declared dependency {dependency!r} is not among the supplied mods; availability was not checked.",
                     mod.name, "descriptor.mod",
                 ))
-            elif key != mod_key:
+            else:
                 graph[mod_key].append(key)
 
     visited: set[str] = set()

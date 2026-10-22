@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.12 - 2026-10-23
+
+- Report self-dependencies as dependency cycles instead of silently ignoring them.
+- Add a regression test for a mod that declares itself as a dependency.
+
 ## 0.2.11 - 2026-10-23
 
 - Render control, bidi, and invisible Unicode characters visibly in text/JSON findings; percent-encode them in SARIF artifact URIs to prevent spoofed report paths.
