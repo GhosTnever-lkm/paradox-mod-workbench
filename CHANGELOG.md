@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.13 - 2026-10-23
 
 - Report dependencies with duplicate supplied descriptor names as ambiguous and exclude them from cycle analysis instead of inventing a dependency cycle.
 - Add a regression test for duplicate-name false positives.
