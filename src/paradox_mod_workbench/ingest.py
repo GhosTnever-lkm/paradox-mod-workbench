@@ -4,6 +4,7 @@ import os
 import re
 import stat
 import zipfile
+import zlib
 from pathlib import Path, PurePosixPath
 
 from .model import Finding, ModFile, ModInput
@@ -170,7 +171,7 @@ def load_mod(source: str | os.PathLike[str], max_unpacked: int = DEFAULT_MAX_UNP
                     for info, safe_path in safe_entries:
                         try:
                             raw[safe_path] = archive.read(info)
-                        except (OSError, zipfile.BadZipFile, RuntimeError):
+                        except (OSError, EOFError, zipfile.BadZipFile, RuntimeError, zlib.error):
                             findings.append(Finding("ARCHIVE_ENTRY_READ_ERROR", "error", "Could not read an archive entry.", name, safe_path))
         except (OSError, zipfile.BadZipFile):
             findings.append(Finding("INVALID_ZIP", "error", "The selected file is not a readable ZIP archive.", name))

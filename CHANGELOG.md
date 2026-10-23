@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.14 - 2026-10-23
+
+- Report corrupt ZIP DEFLATE streams as archive-entry read errors instead of crashing the scan.
+- Add a regression test for malformed compressed data.
+
 ## 0.2.13 - 2026-10-23
 
 - Report dependencies with duplicate supplied descriptor names as ambiguous and exclude them from cycle analysis instead of inventing a dependency cycle.

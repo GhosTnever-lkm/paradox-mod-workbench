@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
+import struct
+import sys
 import tempfile
 import unittest
 import warnings
 import zipfile
 from pathlib import Path
-import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from paradox_mod_workbench import __version__
@@ -77,6 +78,26 @@ class IngestTests(unittest.TestCase):
             mod = load_mod(archive)
             self.assertIn("UNSAFE_ARCHIVE_PATH", [finding.code for finding in mod.findings])
             self.assertEqual([item.path for item in mod.files], ["common/ideas/ok.txt"])
+
+    def test_corrupt_deflate_stream_is_reported_instead_of_crashing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "corrupt-deflate.zip"
+            with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zipped:
+                zipped.writestr("common/ideas/broken.txt", "compressible fixture " * 80)
+            contents = bytearray(archive.read_bytes())
+            name_length, extra_length = struct.unpack_from("<HH", contents, 26)
+            compressed_data = 30 + name_length + extra_length
+            contents[compressed_data] = 0xFF
+            archive.write_bytes(contents)
+
+            report = Path(directory) / "report.json"
+            exit_code = main(["scan", str(archive), "--format", "json", "--output", str(report)])
+            payload = json.loads(report.read_text(encoding="utf-8"))
+
+            self.assertEqual(exit_code, 1)
+            finding = next(item for item in payload["findings"] if item["code"] == "ARCHIVE_ENTRY_READ_ERROR")
+            self.assertEqual(finding["severity"], "error")
+            self.assertEqual(finding["path"], "common/ideas/broken.txt")
 
     def test_duplicate_zip_path_is_reported_and_first_entry_is_kept(self):
         with tempfile.TemporaryDirectory() as directory:
