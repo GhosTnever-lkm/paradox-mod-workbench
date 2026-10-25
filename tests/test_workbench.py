@@ -99,6 +99,36 @@ class IngestTests(unittest.TestCase):
             self.assertEqual(finding["severity"], "error")
             self.assertEqual(finding["path"], "common/ideas/broken.txt")
 
+    def test_unsupported_zip_compression_is_reported_instead_of_crashing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "unsupported-compression.zip"
+            with zipfile.ZipFile(archive, "w") as zipped:
+                zipped.writestr("common/ideas/unsupported.txt", "plain fixture")
+            contents = bytearray(archive.read_bytes())
+            offset = 0
+            while offset < len(contents) - 4:
+                signature = contents[offset:offset + 4]
+                if signature == b"PK\x03\x04":
+                    struct.pack_into("<H", contents, offset + 8, 99)
+                    name_length, extra_length = struct.unpack_from("<HH", contents, offset + 26)
+                    offset += 30 + name_length + extra_length
+                elif signature == b"PK\x01\x02":
+                    struct.pack_into("<H", contents, offset + 10, 99)
+                    name_length, extra_length, comment_length = struct.unpack_from("<HHH", contents, offset + 28)
+                    offset += 46 + name_length + extra_length + comment_length
+                else:
+                    offset += 1
+            archive.write_bytes(contents)
+
+            report = Path(directory) / "report.json"
+            exit_code = main(["scan", str(archive), "--format", "json", "--output", str(report)])
+            payload = json.loads(report.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 1)
+        finding = next(item for item in payload["findings"] if item["code"] == "ARCHIVE_ENTRY_READ_ERROR")
+        self.assertEqual(finding["severity"], "error")
+        self.assertEqual(finding["path"], "common/ideas/unsupported.txt")
+
     def test_duplicate_zip_path_is_reported_and_first_entry_is_kept(self):
         with tempfile.TemporaryDirectory() as directory:
             archive = Path(directory) / "duplicate.zip"
